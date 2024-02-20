@@ -32,3 +32,10 @@ def managed_mode(wifi_interface):
     except subprocess.CalledProcessError as e:
         print("Eror restoring the Network Manager:", e)
         exit(1)
+
+
+def set_channel(interface, channel):
+    try:
+        subprocess.run(["sudo", "iw", "dev", interface + "mon", "set", "channel", channel])
+    except subprocess.CalledProcessError as e:
+        print("Error changing channels")

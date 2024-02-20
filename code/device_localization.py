@@ -32,4 +32,5 @@ def localize_device(device_mac_address, channel):
     device_detector.managed_mode(interface)
 
 
-#localize_device("8a:56:4e:bb:14:ed", "6")
+print("Signal Strength:")
+localize_device("8a:56:4e:bb:14:ed", "6")
