@@ -1,12 +1,4 @@
 Google Pixel 7a MAC address: 8A:56:4E:BB:14:ED
 WiFi-2.4-2793: F4:06:8D:B7:75:F9 1
 VOO-1KAHLD0:  00:CB:7A:76:21:50 1
-
 Camera : b0:c5:54:64:60:8b
-
-
-['c8:d3:ff:05:35:62', '8a:56:4e:bb:14:ed', '42:62:85:f9:2e:70', '2a:de:76:bb:14:5c']
-['Hewlett Packard', 'Unknown', 'Unknown', 'Unknown']
-['1', '1', '1', '1']
-[(0, 0), (3118, 314), (0, 0), (0, 0)]
-

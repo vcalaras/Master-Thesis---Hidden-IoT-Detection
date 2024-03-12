@@ -22,60 +22,39 @@ def MAC_address_lookup(mac_address):
     except Exception as e:
         print(f"An error occurred: {e}")
 
-
-def collect_device_data(interface, device_mac, channel):
-    data_frames_received = 0
-    data_frames_sent = 0
-    probe_requests_sent = 0
-    total_frames = 0
-    signal_strength = None
+# Collects data on all the devices on the same channel
+def collect_device_data(interface, channel, data_dict):
 
     monitor_mode(interface)
     set_channel(interface, channel)
 
     def packet_callback(packet):
-        nonlocal data_frames_received
-        nonlocal data_frames_sent
-        nonlocal probe_requests_sent
-        nonlocal total_frames
-        nonlocal signal_strength
-
-
-        if(signal_strength is None):
-                signal_strength = packet.dBm_AntSignal if packet.haslayer(RadioTap) else None
 
         if packet.haslayer(Dot11):
+            # Check if the packet is a data frame and is sent to the specified device, data frames received
+            if packet.addr1 in data_dict and packet.type == 2:
+                data_dict[packet.addr1][1] =  data_dict[packet.addr1][1] + 1
 
-            # Check if the packet is a data frame and is sent to the specified device
-            if packet.addr1 == device_mac and packet.type == 2:
-                data_frames_received += 1
+            # Check if the packet is a data frame and is sent by the specified device, data frames sent
+            if packet.addr2 in data_dict.keys() and packet.type == 2:
+                data_dict[packet.addr2][2] =  data_dict[packet.addr2][2] + 1
 
-            # Check if the packet is a data frame c8:d3:ff:05:35:62and is sent by the specified device
-            if packet.addr2 == device_mac and packet.type == 2:
-                data_frames_sent += 1
+            # Check if the packet is a probe request frame sent by the specified device, probe requests sent
+            if packet.subtype == 4 and packet.addr2 in data_dict:
+                data_dict[packet.addr2][3] =  data_dict[packet.addr2][3] + 1
 
-            # Check if the packet is a probe request frame sent by the specified device
-            if packet.subtype == 4 and packet.addr2 == device_mac:
-                probe_requests_sent += 1
+            # Total packets
+            if packet.addr1 in data_dict:
+                data_dict[packet.addr1][4] =  data_dict[packet.addr1][4] + 1
+            if packet.addr2 in data_dict:
+                data_dict[packet.addr2][4] =  data_dict[packet.addr2][4] + 1
 
-            if packet.addr1 == device_mac or packet.addr2 == device_mac:
-                total_frames += 1
-
-    sniff(iface=interface + 'mon', prn=packet_callback, timeout=30)
-
+    sniff(iface=interface + 'mon', prn=packet_callback, timeout=60)
 
     managed_mode(interface)
 
-    return {
-        "data_frames_received": data_frames_received,
-        "data_frames_sent": data_frames_sent,
-        "probe_requests_sent": probe_requests_sent,
-        "total_frames": total_frames,
-        "signal_strength": signal_strength
-    }
 
-#print(collect_device_data(interface, "b0:c5:54:64:60:8b", '1'))
-
+# Measures the number of bytes per second of a specific device (MAC address)
 def measure_packets_per_second(interface, device_mac, channel, duration):
     
     monitor_mode(interface)
@@ -102,16 +81,16 @@ def measure_packets_per_second(interface, device_mac, channel, duration):
 
     return bytes_per_s
 
-bytes_per_s = measure_packets_per_second(interface, "b0:c5:54:64:60:8b", '1', 60)
-print(bytes_per_s)
+#bytes_per_s = measure_packets_per_second(interface, "b0:c5:54:64:60:8b", '1', 60)
+#print(bytes_per_s)
 
 
-time_values = range(1, len(bytes_per_s) + 1)
+#time_values = range(1, len(bytes_per_s) + 1)
 
 # Create a bar chart
-plt.bar(time_values, bytes_per_s, color='blue', edgecolor='black')
+#plt.bar(time_values, bytes_per_s, color='blue', edgecolor='black')
 
-plt.xlabel("Time (seconds)")
-plt.ylabel("Bytes per second")
-plt.title("Bytes Per Second Over Time")
-plt.show()
+#plt.xlabel("Time (seconds)")
+#plt.ylabel("Bytes per second")
+#plt.title("Bytes Per Second Over Time")
+#plt.show()

@@ -1,4 +1,5 @@
 import subprocess
+import time
 
 # Set the the wifi interface to monitor mode
 def monitor_mode(wifi_interface):
@@ -10,11 +11,14 @@ def monitor_mode(wifi_interface):
         exit(1)
 
     # Enable monitor mode
-    try:
-        subprocess.run(["sudo", "airmon-ng", "start", wifi_interface], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    except subprocess.CalledProcessError as e:
-        print("Error enabling monitor mode:", e)
-        exit(1)
+    # Sometimes there is an error, so we retry again
+    while(True):
+        try:
+            subprocess.run(["sudo", "airmon-ng", "start", wifi_interface], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            break
+        except subprocess.CalledProcessError as e:
+            print("Error enabling monitor mode:", e)
+            time.sleep(1)
 
 
 # Set the wifi interface back to managed mode

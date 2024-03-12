@@ -102,6 +102,3 @@ def scan_devices(AP_MAC_address, channel, interface):
 
     managed_mode(interface)
     return devices
-
-
-#print(scan_devices("F4:06:8D:B7:75:F9", "1", "wlp0s20f3"))
