@@ -20,7 +20,6 @@ def localize_device(interface, device_mac_address, channel, ap_mac_address):
             if source_mac == device_mac_address:
                 signal_strength = radio_tap.dBm_AntSignal
                 signal_table.append(signal_strength)
-                print(len(signal_table))
                 if(len(signal_table) == 10):
                     print("Signal Strengh is " + str(mean(signal_table)))
                     signal_table = []
@@ -30,17 +29,17 @@ def localize_device(interface, device_mac_address, channel, ap_mac_address):
 
     set_channel(interface, channel)
 
-    while(True):
-        send_deauth_requests(interface, device_mac_address, ap_mac_address)
+    #while(True):
+    #send_deauth_requests(interface, device_mac_address, ap_mac_address)
         # Sniff Wi-Fi packets and process them with the callback function
-        sniff(iface=interface + "mon", prn=packet_handler_signal_strenght, timeout = 10) 
+    sniff(iface=interface + "mon", prn=packet_handler_signal_strenght)
+        #,timeout = 10) 
 
     managed_mode(interface)
 
 
 def send_deauth_requests(interface, device_mac_address, ap_mac_address):
     deauth_req = RadioTap() / Dot11(type=0, subtype=12, addr1=device_mac_address, addr2=ap_mac_address, addr3=ap_mac_address) / Dot11Deauth(reason=7)
-    print(deauth_req.summary())
     sendp(deauth_req, iface=interface + "mon", inter=0.1, count=10, verbose=1)
 
 

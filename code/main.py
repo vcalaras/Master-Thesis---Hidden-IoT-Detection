@@ -41,11 +41,10 @@ def main():
 
 
     print("Checking OUIs...")
-    # Initialise the dictionary for the data, the key is the device address, the value is a list representing [name of the manufacturer, data frames received, data frames sent, probe request sent, total frames, 
-    # signal strength
+    # Initialise the dictionary for the data, the key is the device address, the value is a list representing [name of the manufacturer, data frames received, data frames sent, probe request sent, total frames ]
     device_data_dict = {}
     for addr in devices_addr:
-        device_data_dict[addr] = [device_identification.MAC_address_lookup(addr), 0, 0, 0, 0, 0]
+        device_data_dict[addr] = [device_identification.MAC_address_lookup(addr), 0, 0, 0, 0]
         time.sleep(2) # cannot do multiple fast API calls so need to wait a bit
 
     print("Collecting data....")
@@ -56,7 +55,10 @@ def main():
 
     print(device_data_dict)
     print(access_points)
-    print(devices)
+    print(devices_addr)
+
+    print(len(devices_addr))
+    print((len(access_points)))
 
 
 if __name__ == "__main__":

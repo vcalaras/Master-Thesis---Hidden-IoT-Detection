@@ -68,16 +68,27 @@ def monitor(AP_MAC_address, interface):
     device_addr = []
 
     def packet_handler(packet):
-        if Dot11 in packet:
-            wifi_packet = packet[Dot11]
+        if RadioTap in packet and Dot11 in packet:
 
-            boradcast_address = "ff:ff:ff:ff:ff:ff"
-            if(wifi_packet.addr1 != ap_address and wifi_packet.addr1 not in device_addr and wifi_packet.addr1 != boradcast_address):
-                device_addr.append(wifi_packet.addr1)
-            if(wifi_packet.addr2 != ap_address and wifi_packet.addr2 not in device_addr and wifi_packet.addr2 != boradcast_address):
-                device_addr.append(wifi_packet.addr2)
-            if(wifi_packet.addr3 != ap_address and wifi_packet.addr3 not in device_addr and wifi_packet.addr3 != boradcast_address):
-                device_addr.append(wifi_packet.addr3)
+            radio_tap = packet[RadioTap]
+            radio_signal = radio_tap.dBm_AntSignal
+
+            #filter devices that are too far away
+            if radio_signal > -60:
+            
+                wifi_packet = packet[Dot11]
+
+                    #ignore probe requests and responses coming from outsie
+                #if wifi_packet.subtype == 4 or wifi_packet.subtype == 5:
+                #    return
+
+                boradcast_address = "ff:ff:ff:ff:ff:ff"
+                if(wifi_packet.addr1 != ap_address and wifi_packet.addr1 not in device_addr and wifi_packet.addr1 != boradcast_address):
+                    device_addr.append(wifi_packet.addr1)
+                if(wifi_packet.addr2 != ap_address and wifi_packet.addr2 not in device_addr and wifi_packet.addr2 != boradcast_address):
+                    device_addr.append(wifi_packet.addr2)
+                if(wifi_packet.addr3 != ap_address and wifi_packet.addr3 not in device_addr and wifi_packet.addr3 != boradcast_address):
+                    device_addr.append(wifi_packet.addr3)
             
     
     capture_filter = f"wlan host {ap_address}"
